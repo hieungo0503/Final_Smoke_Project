@@ -79,7 +79,7 @@ void initializeSDK(struct ViettelSDK *self, UART_HandleTypeDef *debugger_uart,
 	readFLASHPreviousFlowData(self, FLASH_USER_START_ADDR);
 	if (WATCHDOG_TIMER)
 	{
-		HAL_IWDG_Init(&hiwdg);
+//		HAL_IWDG_Init(&hiwdg);
 	}
 
 	if (!validateUARTPorts(self))
@@ -230,7 +230,7 @@ struct CommandResponse sendCommand(struct ViettelSDK *self, char *command,
 	{
 		if (WATCHDOG_TIMER)
 		{
-			HAL_IWDG_Refresh(&hiwdg);
+//			HAL_IWDG_Refresh(&hiwdg);
 		}
 
 		self->command_response.status = STATUS_UNKNOWN;
@@ -875,7 +875,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	/* Wait module to go to sleep */
 	if (WATCHDOG_TIMER)
 	{
-		HAL_IWDG_Refresh(&hiwdg);
+//		HAL_IWDG_Refresh(&hiwdg);
 	}
 	self->passively_listen = true;
 	self->sleep = false;

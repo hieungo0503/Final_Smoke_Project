@@ -98,7 +98,7 @@ void sleepMCU(struct ViettelSDK *self, uint32_t period_in_seconds)
 
 	if (WATCHDOG_TIMER)
 	{
-		HAL_IWDG_Refresh(&hiwdg);
+//		HAL_IWDG_Refresh(&hiwdg);
 		HAL_TIM_Base_Start_IT(&htim2);
 	}
 
