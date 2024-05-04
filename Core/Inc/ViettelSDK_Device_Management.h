@@ -30,7 +30,7 @@ static char static_null_string[1] =
 { 0 }; // intentionally left unused
 
 /* Extern variables */
-extern IWDG_HandleTypeDef hiwdg;
+//extern IWDG_HandleTypeDef hiwdg;
 extern TIM_HandleTypeDef htim2;
 
 struct ViettelSDK
