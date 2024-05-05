@@ -8,6 +8,7 @@ void initializeSDK(struct ViettelSDK *self, UART_HandleTypeDef *debugger_uart,
 	self->data_list = NULL;
 	self->addDataSuccessfully = true;
 	self->sleep = false;
+	self->StopMode = 0;
 	self->mqtt_params.receiveSubcribeTimeout = RECEIVE_SUBSCRIBE_TIMEOUT;
 	self->warming_up_counter = WARMING_UP_COUNT;
 	self->passively_listen = false;
@@ -535,11 +536,6 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			continue;
 		}
 
-		/* AT+CBC */
-		if (readVoltage(self) != STATUS_SUCCESS)
-		{
-			continue;
-		}
 
 		HAL_Delay(STAGE_DELAY_MS);
 		self->stage = 2;
@@ -646,11 +642,18 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				continue;
 			}
 
+			/* AT+CBC */
+			if (readVoltage(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+
 			/* AT+QENG? */
 			if (readReportNetworkState(self) == STATUS_SUCCESS)				//check to fix at this line
 			{
 				break;
 			}
+
 		}
 
 		if (try == -1)
@@ -680,7 +683,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		}
 
 		/* AT+CPSMS */
-		if (configurePSM(self, 1, "01011111", "00000100") != STATUS_SUCCESS)
+		if (configurePSM(self, 1, "01011111", "00000001") != STATUS_SUCCESS)
 		{
 			continue;
 		}
@@ -713,6 +716,9 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		self->stage = 4;
 	}
 
+
+	if(self->run_first_time)
+	{
 	addSensorData(self, smoke_hler);
 
 	addBatteryVoltage(self);
@@ -722,6 +728,14 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	addNetworkData(self);
 
 	packData(self);
+	}
+	else
+	{
+		changeSensorData(self, smoke_hler);
+		changeBatteryVoltage(self);
+		changeNetworkData(self);
+		packData(self);
+	}
 
 	/* Stage 4 */
 	while (self->stage == 4)
@@ -782,7 +796,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 //				continue;
 //			}
 
-			if (sendCoAPMessage(self, self->coap_params.message, 1, 2)!= STATUS_SUCCESS)
+			if (sendCoAPMessage(self, self->coap_params.message, 1, 2) != STATUS_SUCCESS)
 			{
 				wakeUpModule(self);
 				continue;
@@ -869,14 +883,14 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			continue;
 		}
 
-		self->stage = 0;
+		self->stage = 1;
 	}
 
 	/* Wait module to go to sleep */
-	if (WATCHDOG_TIMER)
-	{
-//		HAL_IWDG_Refresh(&hiwdg);
-	}
+//	if (WATCHDOG_TIMER)
+//	{
+////		HAL_IWDG_Refresh(&hiwdg);
+//	}
 	self->passively_listen = true;
 	self->sleep = false;
 	self->psm_timer = HAL_GetTick();
@@ -891,13 +905,17 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
 	//Enter STOP mode Here.
-	Enter_Stop1Mode();
+	Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 
+	return; 		//this will return to stage 0
 
 	try = 3;
 	while (try--)
 	{
-		wakeUpModule(self);
+		//wakeUpModule(self);
+//		SystemClock_Config();
+//		HAL_ResumeTick();
+
 		HAL_Delay(1000);
 		if (checkModule(self) == STATUS_SUCCESS)
 		{
@@ -919,7 +937,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				|| self->stat == 1)
 		{
 			/* Still conenct to cell */
-			self->stage = 4;
+			self->stage = 3;
 			return;
 		}
 	}
@@ -952,7 +970,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			powerOffModule(self, false);
 
 			/* Sleep */
-			sleepMCU(self, SLEEP_INTERVAL);
+			//sleepMCU(self, SLEEP_INTERVAL);
 			resetMCU(self);
 		}
 

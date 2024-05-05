@@ -29,6 +29,7 @@ struct Smoke_Data{
 	uint8_t recLen, checkCode, failCnt;
 	bool isHeader;
 	uint16_t threshold;
+	bool AlarmSatus;
 
 	GPIO_TypeDef *Status_Port;
 	uint16_t Status_Pin;

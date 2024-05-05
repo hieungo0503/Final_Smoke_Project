@@ -72,7 +72,11 @@ void addCENGData(struct ViettelSDK *self);
 
 void addNetworkData(struct ViettelSDK *self);
 
+void changeNetworkData(struct ViettelSDK *self);
+
 void addBatteryVoltage(struct ViettelSDK *self);
+
+void changeBatteryVoltage(struct ViettelSDK *self);
 
 void addSimProfile(struct ViettelSDK *self);
 
@@ -89,5 +93,8 @@ void getSensorData(struct ViettelSDK *self);
 void updateFLASHData(struct ViettelSDK *self);
 
 void addSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler);
+
+void changeSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler);
+
 
 #endif /* VIETTELSDK_DATA_MANAGEMENT_H_ */

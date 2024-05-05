@@ -95,6 +95,73 @@ void addData(struct ViettelSDK *self, char key[], void *value,
 
 }
 
+void changeCurrentData(struct ViettelSDK *self, char key[], void *value, enum ValueType value_type)
+{
+	DataNode *current_node = self->data_list;
+	while (current_node)
+	{
+		if(strstr(current_node->pair.key, key))
+		{
+			switch (value_type)
+				{
+				case VALUE_BOOL:
+					current_node->pair.value.bool_value = (bool*) value;
+					current_node->pair.value_type = VALUE_BOOL;
+					break;
+				case VALUE_CHAR:
+					current_node->pair.value.char_value = (char*) value;
+					current_node->pair.value_type = VALUE_CHAR;
+					break;
+				case VALUE_UNSIGNED_CHAR:
+					current_node->pair.value.unsigned_char_value = (unsigned char*) value;
+					current_node->pair.value_type = VALUE_UNSIGNED_CHAR;
+					break;
+				case VALUE_UINT8_T:
+					current_node->pair.value.uint8_value = (uint8_t*) value;
+					current_node->pair.value_type = VALUE_UINT8_T;
+					break;
+				case VALUE_SHORT:
+					current_node->pair.value.short_value = (short*) value;
+					current_node->pair.value_type = VALUE_SHORT;
+					break;
+				case VALUE_UNSIGNED_SHORT:
+					current_node->pair.value.unsigned_short_value = (unsigned short*) value;
+					current_node->pair.value_type = VALUE_UNSIGNED_SHORT;
+					break;
+				case VALUE_UINT16_T:
+					current_node->pair.value.uint16_value = (uint16_t*) value;
+					current_node->pair.value_type = VALUE_UINT16_T;
+					break;
+				case VALUE_INT:
+					current_node->pair.value.int_value = (int*) value;
+					current_node->pair.value_type = VALUE_INT;
+					break;
+				case VALUE_LONG:
+					current_node->pair.value.long_value = (long*) value;
+					current_node->pair.value_type = VALUE_LONG;
+					break;
+				case VALUE_UINT32_T:
+					current_node->pair.value.uint32_value = (uint32_t*) value;
+					current_node->pair.value_type = VALUE_UINT32_T;
+					break;
+				case VALUE_FLOAT:
+					current_node->pair.value.float_value = (float*) value;
+					current_node->pair.value_type = VALUE_FLOAT;
+					break;
+				case VALUE_CHAR_ARRAY:
+					current_node->pair.value.char_array_value = (char*) value;
+					current_node->pair.value_type = VALUE_CHAR_ARRAY;
+					break;
+				default:
+					return;
+				}
+			break;
+		}
+		current_node = current_node->next;
+	}
+
+}
+
 void addCENGData(struct ViettelSDK *self)
 {
 
@@ -137,6 +204,10 @@ void addBatteryVoltage(struct ViettelSDK *self)
 	addData(self,"testId","BATTERY_VOLTAGE",VALUE_CHAR_ARRAY);
 	addData(self,"details","",VALUE_CHAR);
 	addData(self,"voltage",&self->voltage,VALUE_UINT16_T);
+}
+void changeBatteryVoltage(struct ViettelSDK *self)
+{
+	changeCurrentData(self,"voltage",&self->voltage,VALUE_UINT16_T);
 }
 
 void addSimProfile(struct ViettelSDK *self)
@@ -227,6 +298,20 @@ void addNetworkData(struct ViettelSDK *self)
 	addData(self,"T3324",&self->cell_data.serving_cell.T3324,VALUE_UINT32_T);	//check
 	addData(self,"T3412",&self->cell_data.serving_cell.T3412,VALUE_UINT32_T);//check
 	addData(self,"tac",&self->cell_data.serving_cell.sc_tac,VALUE_CHAR_ARRAY);
+}
+void changeNetworkData(struct ViettelSDK *self)
+{
+	changeCurrentData(self,"band",&self->cell_data.serving_cell.sc_band,VALUE_UINT8_T);
+	changeCurrentData(self,"EARFCN",&self->cell_data.serving_cell.sc_earfcn,VALUE_UINT32_T);
+	changeCurrentData(self, "PCI", &self->cell_data.serving_cell.sc_pci, VALUE_UINT16_T);
+	changeCurrentData(self,"connectionStatus",&self->stat,VALUE_UINT8_T);
+	changeCurrentData(self,"ipAddress",&self->ipAddress,VALUE_CHAR_ARRAY);
+	changeCurrentData(self,"RSRP",&self->cell_data.serving_cell.sc_rsrp,VALUE_SHORT);
+	changeCurrentData(self,"RSSI",&self->cell_data.serving_cell.sc_rssi,VALUE_SHORT);
+	changeCurrentData(self,"RSRQ",&self->cell_data.serving_cell.sc_rsrq,VALUE_SHORT);
+	changeCurrentData(self,"T3324",&self->cell_data.serving_cell.T3324,VALUE_UINT32_T);	//check
+	changeCurrentData(self,"T3412",&self->cell_data.serving_cell.T3412,VALUE_UINT32_T);//check
+	changeCurrentData(self,"tac",&self->cell_data.serving_cell.sc_tac,VALUE_CHAR_ARRAY);
 }
 void packData(struct ViettelSDK *self)
 {
@@ -333,12 +418,23 @@ void addSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	  //Save Temp Data
 		addData(self,"testId","SENSOR",VALUE_CHAR_ARRAY);
 		addData(self,"details","",VALUE_CHAR);
-		addData(self, "AlarmSatus", 0, VALUE_BOOL);
+		addData(self, "AlarmSatus", &smoke_hler->AlarmSatus, VALUE_BOOL);
 		addData(self, "SmokeValue",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
 		addData(self, "Temperature", &smoke_hler->temperature, VALUE_FLOAT);
 		addData(self, "Humidity", &smoke_hler->humidity, VALUE_FLOAT);
 //		updateFLASHData(&sdk_handler);
 }
+
+void changeSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
+{
+	  //Save Temp Data
+		changeCurrentData(self, "AlarmSatus", &smoke_hler->AlarmSatus, VALUE_BOOL);
+		changeCurrentData(self, "SmokeValue",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
+		changeCurrentData(self, "Temperature", &smoke_hler->temperature, VALUE_FLOAT);
+		changeCurrentData(self, "Humidity", &smoke_hler->humidity, VALUE_FLOAT);
+//		updateFLASHData(&sdk_handler);
+}
+
 
 void getSensorData(struct ViettelSDK *self)
 {

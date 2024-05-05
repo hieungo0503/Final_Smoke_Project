@@ -38,8 +38,10 @@ struct ViettelSDK
 
 	/* Sleep */
 	bool sleep;
+	bool StopMode;
 
 	uint16_t voltage;
+
 	/* Stage */
 	uint8_t stage;
 

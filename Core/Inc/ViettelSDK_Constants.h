@@ -11,7 +11,7 @@ static const char *ERROR_COMMAND_SIGN[] =
 { "ERROR\r\n", "ERROR" }; // intentionally left unused
 
 static const char *PASSIVE_RESPONSE_SIGN[] =
-{ "NORMAL POWER DOWN", "+CPSMSTATUS: \"EN", "+CPSMSTATUS: \"EX", "+CMQPUB:" }; // intentionally left unused
+{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"EN", "+QNBIOTEVENT: \"EX", "+CMQPUB:" }; // intentionally left unused
 
 #ifndef COMMAND_DELAY_MS
 #define COMMAND_DELAY_MS (1000U)
@@ -86,7 +86,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef WAIT_FOR_PSM_MODE
-#define WAIT_FOR_PSM_MODE (20000LU)
+#define WAIT_FOR_PSM_MODE (90000LU)
 #endif
 
 #ifndef WAKE_UP_MODULE_PUSH_COUNT
