@@ -53,8 +53,6 @@ UART_WakeUpTypeDef WakeUpSelection;
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
-LPTIM_HandleTypeDef hlptim1;
-
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim2;
@@ -77,7 +75,6 @@ static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_LPTIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 //extern void initialise_monitor_handles(void);
@@ -109,6 +106,49 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		}
 	}
 }
+
+//Buton Run
+
+uint32_t timestatrt = 0;
+bool state = true;
+bool check = false;
+uint16_t count = 0;
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == GPIO_PIN_5 && state == true){
+		HAL_TIM_Base_Start_IT(&htim2);
+		state = false;
+
+		timestatrt = HAL_GetTick();
+		check = true;
+	}
+	else{
+		__NOP();
+	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(htim);
+
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_TIM_PeriodElapsedCallback could be implemented in the user file
+   */
+  if(htim == &htim2){
+	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_RESET){
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
+		state = true;
+		count ++;
+		HAL_TIM_Base_Stop_IT(&htim2);
+	}
+  }
+
+}
+
+
+//Another funcion
 
 sht3x_handle_t handle = {
     .i2c_handle = &hi2c1,
@@ -162,15 +202,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
+  MX_USART1_UART_Init();
   MX_RTC_Init();
   MX_TIM2_Init();
   MX_DMA_Init();
-
-  MX_I2C1_Init();
-  MX_LPTIM1_Init();
-  MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   if (WATCHDOG_TIMER)
   	{
@@ -207,21 +244,38 @@ int main(void)
 //	  if(SWO_DEBUG)
 //	  printf("Hello world\n");
 //
-	  if(sdk_handler.sleep == false)
+//	  if(sdk_handler.sleep == false)
+//	  {
+//		  if(SHT3X_EN)
+//		  READ_SHT30_SENSOR();
+//
+//		  connectToPlatform(&sdk_handler,&smoke_handler);
+//	  }
+//
+//
+//	  if(smoke_handler.AlarmSatus == false)
+//	  {
+//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
+//		  HAL_Delay(10);
+//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
+//
+//		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
+//	  }
+
+	  if(check == true && HAL_GetTick() - timestatrt > 400)
 	  {
-		  if(SHT3X_EN)
-		  READ_SHT30_SENSOR();
+		  if(count == 1){
+			 //do something
+			  printf("count = 0 \n");
+			  count = 0;
+		  }
+		  else if(count == 2){
+			  //do something
 
-		  connectToPlatform(&sdk_handler,&smoke_handler);
-	  }
-
-	  if(smoke_handler.AlarmSatus == false)
-	  {
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
-		  HAL_Delay(10);
-		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-
-		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
+			  printf("count = 2 \n");
+			  count = 0;
+		  }
+		  check = false;
 	  }
 
     /* USER CODE END WHILE */
@@ -324,41 +378,6 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief LPTIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPTIM1_Init(void)
-{
-
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  hlptim1.Instance = LPTIM1;
-  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV8;
-  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
-  hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
-  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
-  hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
-  hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
-  hlptim1.Init.RepetitionCounter = 0;
-  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
-}
-
-/**
   * @brief RTC Initialization Function
   * @param None
   * @retval None
@@ -415,7 +434,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 20000;
+  htim2.Init.Period = 49;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -547,17 +566,23 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, MCU_PSMe_Pin|Reset_Module_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : RI_Pin_Pin Button_Pin */
-  GPIO_InitStruct.Pin = RI_Pin_Pin|Button_Pin;
+  /*Configure GPIO pin : RI_Pin_Pin */
+  GPIO_InitStruct.Pin = RI_Pin_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(RI_Pin_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : button_Pin */
+  GPIO_InitStruct.Pin = button_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(button_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Buzzer_Pin LED_Pin */
   GPIO_InitStruct.Pin = Buzzer_Pin|LED_Pin;
@@ -572,6 +597,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 

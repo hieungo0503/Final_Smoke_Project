@@ -64,8 +64,9 @@ void SystemClock_Config(void);
 /* Private defines -----------------------------------------------------------*/
 #define RI_Pin_Pin GPIO_PIN_1
 #define RI_Pin_GPIO_Port GPIOA
-#define Button_Pin GPIO_PIN_5
-#define Button_GPIO_Port GPIOA
+#define button_Pin GPIO_PIN_5
+#define button_GPIO_Port GPIOA
+#define button_EXTI_IRQn EXTI9_5_IRQn
 #define Buzzer_Pin GPIO_PIN_6
 #define Buzzer_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_7
