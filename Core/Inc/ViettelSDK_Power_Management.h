@@ -11,7 +11,7 @@ void setupSleepTimer(struct ViettelSDK *self);
 
 void sleepMCU(struct ViettelSDK *self, uint32_t period_in_seconds);
 
-void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2);
+void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart);
 
 void Exit_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2);
 

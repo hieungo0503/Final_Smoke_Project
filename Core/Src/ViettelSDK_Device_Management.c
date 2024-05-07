@@ -8,7 +8,6 @@ void initializeSDK(struct ViettelSDK *self, UART_HandleTypeDef *debugger_uart,
 	self->data_list = NULL;
 	self->addDataSuccessfully = true;
 	self->sleep = false;
-	self->StopMode = 0;
 	self->mqtt_params.receiveSubcribeTimeout = RECEIVE_SUBSCRIBE_TIMEOUT;
 	self->warming_up_counter = WARMING_UP_COUNT;
 	self->passively_listen = false;
@@ -647,18 +646,17 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				continue;
 			}
 
-			/* AT+CBC */
-			if (readVoltage(self) != STATUS_SUCCESS)
-			{
-				continue;
-			}
-
 			/* AT+QENG? */
 			if (readReportNetworkState(self) == STATUS_SUCCESS)				//check to fix at this line
 			{
 				break;
 			}
 
+			/* AT+CBC */
+			if (readVoltage(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
 		}
 
 		if (try == -1)

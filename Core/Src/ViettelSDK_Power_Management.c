@@ -38,7 +38,7 @@ void setupSleepTimer(struct ViettelSDK *self)
 	writeLog(self, LOG_INFO, self->log_content, true);
 }
 
-void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2)
+void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart)
 {
 	  self->StopMode = 1;
 
@@ -51,8 +51,7 @@ void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_H
 	  /* enter STOP1 mode */
 	  HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);
 }
-
-void Exit_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2)
+void Exit_Stop1Mode()
 {
 	SystemClock_Config();
 	HAL_ResumeTick();
