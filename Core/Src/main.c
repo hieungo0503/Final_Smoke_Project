@@ -207,13 +207,13 @@ int main(void)
 //	  if(SWO_DEBUG)
 //	  printf("Hello world\n");
 //
-//	  if(sdk_handler.sleep == false)
-//	  {
-//		  if(SHT3X_EN)
-//		  READ_SHT30_SENSOR();
-//
-//		  connectToPlatform(&sdk_handler,&smoke_handler);
-//	  }
+	  if(sdk_handler.sleep == false)
+	  {
+		  if(SHT3X_EN)
+		  READ_SHT30_SENSOR();
+
+		  connectToPlatform(&sdk_handler,&smoke_handler);
+	  }
 
 	  if(smoke_handler.AlarmSatus == false)
 	  {
@@ -520,10 +520,10 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 1, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA1_Channel6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
 
 }
