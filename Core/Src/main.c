@@ -102,7 +102,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	{
 		saveSmokeRespond(&smoke_handler, huart, Size);
 
-		if(sdk_handler.StopMode == 1 && smoke_handler.AlarmSatus == 1)
+		if(sdk_handler.StopMode == 1)
 		{
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
@@ -162,9 +162,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+
   MX_RTC_Init();
   MX_TIM2_Init();
   MX_DMA_Init();
+
   MX_I2C1_Init();
   MX_LPTIM1_Init();
   MX_USART1_UART_Init();
@@ -180,7 +182,7 @@ int main(void)
   	initializeSDK(&sdk_handler,NULL, &huart1, &hdma_usart1_rx, GPIOA,
   	GPIO_PIN_7);
 
-  	ConfigStop1ModeUART(&sdk_handler, &huart1);
+  	//ConfigStop1ModeUART(&sdk_handler, &huart1);
 
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
@@ -202,21 +204,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(SWO_DEBUG)
-	  printf("Hello world\n");
-
-	  if(sdk_handler.sleep == false)
-	  {
-		  if(SHT3X_EN)
-		  READ_SHT30_SENSOR();
-
-		  connectToPlatform(&sdk_handler,&smoke_handler);
-	  }
+//	  if(SWO_DEBUG)
+//	  printf("Hello world\n");
+//
+//	  if(sdk_handler.sleep == false)
+//	  {
+//		  if(SHT3X_EN)
+//		  READ_SHT30_SENSOR();
+//
+//		  connectToPlatform(&sdk_handler,&smoke_handler);
+//	  }
 
 	  if(smoke_handler.AlarmSatus == false)
 	  {
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
-		  HAL_Delay(50);
+		  HAL_Delay(10);
 		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
 
 		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
@@ -518,7 +520,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA1_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
@@ -595,7 +597,8 @@ void READ_SHT30_SENSOR(void)
 
 void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart)
 {
-	  /* make sure that no UART transfer is on-going */
+
+	/* make sure that no UART transfer is on-going */
 	  while(__HAL_UART_GET_FLAG(huart, USART_ISR_BUSY) == SET);
 	  /* make sure that UART is ready to receive
 	   * (test carried out again later in HAL_UARTEx_StopModeWakeUpSourceConfig) */
@@ -614,7 +617,7 @@ void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart)
 
 	  /* about to enter STOP1 mode: */
 	  /* enable MCU wake-up by UART */
-//	  HAL_UARTEx_EnableStopMode(huart);
+	  HAL_UARTEx_EnableStopMode(huart);
 
 	  sprintf(self->log_content, "Config Stop1 Mode For Uart Success \n");
 	  writeLog(self, LOG_INFO, self->log_content, true);
