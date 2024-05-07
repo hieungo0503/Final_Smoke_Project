@@ -107,10 +107,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
 		}
-		else if (sdk_handler.StopMode == 1 && smoke_handler.AlarmSatus == 0)
-		{
-			//Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
-		}
 	}
 }
 
@@ -184,7 +180,7 @@ int main(void)
   	initializeSDK(&sdk_handler,NULL, &huart1, &hdma_usart1_rx, GPIOA,
   	GPIO_PIN_7);
 
-  	//ConfigStop1ModeUART(&sdk_handler, &huart1);
+  	ConfigStop1ModeUART(&sdk_handler, &huart1);
 
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
@@ -196,7 +192,6 @@ int main(void)
     ConfigStop1ModeUART(&sdk_handler, &huart2);
   	}
 
-
 //  	addData(&sdk_handler, "data", &pulse, VALUE_UINT32_T);
 //  	updateFLASHData(&sdk_handler);
 
@@ -207,16 +202,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(SWO_DEBUG){
-//	  initialise_monitor_handles();
+	  if(SWO_DEBUG)
 	  printf("Hello world\n");
+
+	  if(sdk_handler.sleep == false)
+	  {
+		  if(SHT3X_EN)
+		  READ_SHT30_SENSOR();
+
+		  connectToPlatform(&sdk_handler,&smoke_handler);
 	  }
-	  HAL_Delay(300);
 
-	  if(SHT3X_EN)
-	  READ_SHT30_SENSOR();
+	  if(smoke_handler.AlarmSatus == false)
+	  {
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
+		  HAL_Delay(50);
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
 
-	  connectToPlatform(&sdk_handler,&smoke_handler);
+		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
+	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

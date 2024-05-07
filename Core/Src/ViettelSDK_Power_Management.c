@@ -41,26 +41,23 @@ void setupSleepTimer(struct ViettelSDK *self)
 void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2)
 {
 	  self->StopMode = 1;
-	  //HAL_UARTEx_EnableStopMode(huart1);
-	  HAL_UARTEx_EnableStopMode(huart2);
 
 	  HAL_SuspendTick();
 
-	  //HAL_DisableDBGStopMode();
-	  HAL_EnableDBGStopMode();
+	  HAL_DisableDBGStopMode();
+	  //HAL_EnableDBGStopMode();
 
       HAL_PWR_EnableSleepOnExit();
 	  /* enter STOP1 mode */
 	  HAL_PWREx_EnterSTOP1Mode(PWR_STOPENTRY_WFI);
-
 }
 
 void Exit_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_HandleTypeDef *huart2)
 {
 	SystemClock_Config();
 	HAL_ResumeTick();
-	HAL_UARTEx_DisableStopMode(huart1);
-	HAL_UARTEx_DisableStopMode(huart2);
+//	HAL_UARTEx_DisableStopMode(huart1);
+//	HAL_UARTEx_DisableStopMode(huart2);
 	HAL_PWR_DisableSleepOnExit();
 }
 
@@ -299,6 +296,30 @@ StatusType configurePSM(struct ViettelSDK *self, uint8_t type,
 		writeLog(self, LOG_INFO, self->log_content, false);
 		writeLog(self, LOG_INFO, self->requestedPeriodicTAU, false);
 		writeLog(self, LOG_INFO, self->requestedActiveTime, false);
+	}
+	return output_status;
+}
+
+StatusType TurnOffPSM(struct ViettelSDK *self, uint8_t type)
+{
+	/* AT+CPSMS */
+	StatusType output_status = STATUS_UNKNOWN;
+	if (type == 1)
+	{
+		sprintf(self->command, "%s=%u", PSM_AT_CMD, type);
+	}
+	else
+	{
+		sprintf(self->command, "%s=%u", PSM_AT_CMD, type);
+	}
+	self->command_response = sendCommand(self, self->command,
+	RUN_COMMAND_COUNTER_DEFAULT, RUN_COMMAND_TIMEOUT_MS_DEFAULT);
+	output_status = self->command_response.status;
+	sprintf(self->log_content, "Config PSM is %s.",
+			getStatusTypeString(output_status));
+	if (type == 0)
+	{
+		sprintf(self->log_content, "Disable PSM.");
 	}
 	return output_status;
 }

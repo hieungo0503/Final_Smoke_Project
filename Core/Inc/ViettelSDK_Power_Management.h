@@ -26,4 +26,6 @@ StatusType configureSlowClock(struct ViettelSDK *self, uint8_t type);
 StatusType configurePSM(struct ViettelSDK *self, uint8_t type,
 		char requestedPeriodicTAU[], char requestedActiveTime[]);
 
+StatusType TurnOffPSM(struct ViettelSDK *self, uint8_t type);
+
 #endif /* VIETTELSDK_POWER_MANAGEMENT_H_ */

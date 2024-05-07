@@ -468,6 +468,11 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		if (configureSlowClock(self, 0) != STATUS_SUCCESS)
 			continue;
 		}
+		/* AT+CPSMS */
+		if (TurnOffPSM(self, 0) != STATUS_SUCCESS)
+		{
+			continue;
+		}
 		/* Deregister PSM with cell */
 
 //		if (setControlTheDataOutputFormat(self) != STATUS_SUCCESS)
@@ -664,6 +669,11 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		}
 
 		/* Register PSM with cell */
+		/* AT+CPSMS */
+		if (configurePSM(self, 1, "00101010", "00000010") != STATUS_SUCCESS)
+		{
+			continue;
+		}
 		/* AT+QNBIOTEVENT */
 		if (configureWakeupIndication(self, 1) != STATUS_SUCCESS)
 		{
@@ -682,13 +692,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			continue;
 		}
 
-		/* AT+CPSMS */
-		if (configurePSM(self, 1, "01011111", "00000001") != STATUS_SUCCESS)
-		{
-			continue;
-		}
-
-		HAL_Delay(3000);
+		HAL_Delay(5000);
 
 		try = 3;
 		while (try--)
@@ -905,9 +909,10 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
 	//Enter STOP mode Here.
+
 	Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 
-	return; 		//this will return to stage 0
+	return; 		//this will return to stage 1
 
 	try = 3;
 	while (try--)
