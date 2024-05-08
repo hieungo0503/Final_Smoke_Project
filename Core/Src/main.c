@@ -56,6 +56,7 @@ I2C_HandleTypeDef hi2c1;
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim6;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -75,6 +76,7 @@ static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 //extern void initialise_monitor_handles(void);
@@ -138,11 +140,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
    */
   if(htim == &htim2){
 	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_RESET){
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
+		//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
 		state = true;
 		count ++;
 		HAL_TIM_Base_Stop_IT(&htim2);
 	}
+  }
+
+  else if(htim == &htim6)
+  {
+	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
   }
 
 }
@@ -169,6 +176,7 @@ int _write(int file, char *ptr, int len)
 
 void READ_SHT30_SENSOR(void);
 void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart);
+void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time);
 
 /* USER CODE END 0 */
 
@@ -208,6 +216,7 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   if (WATCHDOG_TIMER)
   	{
@@ -230,10 +239,6 @@ int main(void)
     resetDMAInterrupt_BM22(&smoke_handler);
     ConfigStop1ModeUART(&sdk_handler, &huart2);
   	}
-
-//  	addData(&sdk_handler, "data", &pulse, VALUE_UINT32_T);
-//  	updateFLASHData(&sdk_handler);
-
 
   /* USER CODE END 2 */
 
@@ -264,17 +269,39 @@ int main(void)
 
 	  if(check == true && HAL_GetTick() - timestatrt > 400)
 	  {
-		  if(count == 1){
-			 //do something
-			  printf("count = 0 \n");
-			  count = 0;
-		  }
-		  else if(count == 2){
-			  //do something
+		  switch(count)
+		  {
+		  	  case 1:
+		  		// Do led blink to anounce that device have online and ready to test
+		  		  ConfigTimerPeriod(&htim6, 200);
 
-			  printf("count = 2 \n");
-			  count = 0;
+				  printf("count = 1 \n");
+				  count = 0;
+				  break;
+		  	  case 2:
+		  		// Do test for report data (led blink at 500ms and after complete blink follow to mos and off)
+		  		  ConfigTimerPeriod(&htim6, 500);
+
+		  		  printf("count = 2 \n");
+				  count = 0;
+				  break;
+		  	  case 3:
+		  		// Do test alarm buzzer (buzzer on, led blink 1s)
+		  		  ConfigTimerPeriod(&htim6, 1000);
+
+		  		  printf("count = 3 \n");
+		  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
+		  		  count = 0;
+		  		  break;
+		  	  default:
+		  		HAL_TIM_Base_Stop_IT(&htim6);
+		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
+		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
+		  		//HAL_TIM_Base_Start_IT(&htim2);
+		  		count = 0;
+		  		  break;
 		  }
+
 		  check = false;
 	  }
 
@@ -455,6 +482,44 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 7999;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 1000;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
 
 }
 
@@ -650,6 +715,14 @@ void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart)
 
 	  sprintf(self->log_content, "Config Stop1 Mode For Uart Success \n");
 	  writeLog(self, LOG_INFO, self->log_content, true);
+}
+
+void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time)
+{
+	  HAL_TIM_Base_Stop_IT(htim);
+	  htim->Init.Period = Time;
+	  HAL_TIM_Base_Init(htim);
+	  HAL_TIM_Base_Start_IT(htim);
 }
 
 /* USER CODE END 4 */
