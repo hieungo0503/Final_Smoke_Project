@@ -98,6 +98,7 @@ void initialSomke(struct Smoke_Data *self, UART_HandleTypeDef *huart, DMA_Handle
 	self->Status_Port = StatusPort;
 	self->Status_Pin = StatusPin;
 	self->threshold = threshold;
+	self->AlarmSatus = false;
 	printf("initial Smoke Success \n");
 }
 

@@ -146,6 +146,8 @@ typedef struct COAPParams
 	char server[50];
 	uint16_t port;
 	uint8_t client_id;
+	bool ReportStatus;
+	bool receiveRespond;
 	bool connected;
 	char *message_buffer;
 	char *message;

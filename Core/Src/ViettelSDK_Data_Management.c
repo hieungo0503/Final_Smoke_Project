@@ -194,6 +194,8 @@ void addCENGData(struct ViettelSDK *self)
 
 void addDeviceID(struct ViettelSDK *self, char ID[])
 {
+	strcpy(self->deviceID, ID);
+	/* Change to hexa string */
 	addData(self,"testId","MAIN_MCU_MODULE_SIGNAL",VALUE_CHAR_ARRAY);
 	addData(self,"details","",VALUE_CHAR);
 	addData(self,"deviceId",ID,VALUE_CHAR_ARRAY);

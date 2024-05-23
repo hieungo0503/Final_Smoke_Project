@@ -43,12 +43,12 @@ void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_H
 	  self->StopMode = 1;
 
 //	  HAL_UARTEx_EnableStopMode(huart1);
-//	  HAL_UARTEx_EnableStopMode(huart2);
+	  HAL_UARTEx_EnableStopMode(huart2);
 
 	  HAL_SuspendTick();
 
-	  HAL_DisableDBGStopMode();
-	  //HAL_EnableDBGStopMode();
+	  //HAL_DisableDBGStopMode();
+	  HAL_EnableDBGStopMode();
 
       HAL_PWR_EnableSleepOnExit();
 	  /* enter STOP1 mode */

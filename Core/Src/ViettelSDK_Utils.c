@@ -110,7 +110,7 @@ char* castToString(union Value data, enum ValueType value_type)
 
 	if (value_type == VALUE_BOOL)
 	{
-		if ((bool*) data.bool_value)
+		if (*(bool*) data.bool_value)
 		{
 			sprintf(cast_to_string_buffer, "true");
 		}

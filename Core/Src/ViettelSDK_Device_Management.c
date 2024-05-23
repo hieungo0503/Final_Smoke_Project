@@ -8,6 +8,9 @@ void initializeSDK(struct ViettelSDK *self, UART_HandleTypeDef *debugger_uart,
 	self->data_list = NULL;
 	self->addDataSuccessfully = true;
 	self->sleep = false;
+	self->StopMode = true;
+	self->testCase = 4; //Disable test mode
+	self->coap_params.ReportStatus = true;
 	self->mqtt_params.receiveSubcribeTimeout = RECEIVE_SUBSCRIBE_TIMEOUT;
 	self->warming_up_counter = WARMING_UP_COUNT;
 	self->passively_listen = false;
@@ -221,6 +224,75 @@ void setupCOAP_Parameters(struct ViettelSDK *self,char server[], uint16_t port, 
 	self->coap_params.port = port;
 	self->coap_params.client_id = client_id;
 }
+
+bool AlarmReportSatus(char *response){
+    char res[250];
+		strcpy(res,response);
+		removeSubstring(res, "+QCOAPURC: ");
+		removeSubstring(res, "OK");
+		removeChars(res, "\"\r\n ");
+
+		char *ptr;
+		char *data_ptr;
+		uint8_t sign_count = 0;
+		uint8_t number_of_elements = 0;
+
+		/* Count number of comma since data may not be report */
+		/* Example: 3,"A794",0,,-56 */
+		ptr = strchr(res, ',');
+		while (ptr)
+		{
+			ptr += 1;
+			sign_count += 1;
+			ptr = strchr(ptr, ',');
+		}
+
+		/* Initialize elemtent array */
+		number_of_elements = sign_count + 1;
+		char *string_array[number_of_elements];
+		char clone_data[250];
+		uint8_t element_count = 0;
+		char *token;
+
+		data_ptr = res;
+		strcpy(clone_data, data_ptr);
+		ptr = strchr(clone_data, ',');
+		sign_count = 0;
+		token = strtok(data_ptr, ",");
+		while (token && element_count < number_of_elements)
+		{
+			if (*(ptr + 1) == ',')
+			{
+				string_array[element_count] = NULL;
+				element_count++;
+			}
+			else
+			{
+				/* Element footer */
+				string_array[element_count] = token;
+				token = strtok(NULL, ",");
+				element_count++;
+			}
+
+			/* Delimiter footer */
+			if (sign_count != 0)
+			{
+				ptr += 1;
+				ptr = strchr(ptr, ',');
+			}
+			sign_count += 1;
+		}
+
+		char *s = string_array[8];
+		char *p = strchr(s,':');
+
+		removeChars(p,":}");
+
+		bool result = atoi(p);
+		return result;
+
+}
+
 struct CommandResponse sendCommand(struct ViettelSDK *self, char *command,
 		uint8_t count, uint32_t timeout)
 {
@@ -344,7 +416,7 @@ void saveResponse(struct ViettelSDK *self, UART_HandleTypeDef *huart,
 					sprintf(self->log_content, "Received an PASSIVE command!");
 					writeLog(self, LOG_INFO, self->log_content, true);
 					self->command_response.status = STATUS_SUCCESS;
-					clearMainBuffer(self);
+					//clearMainBuffer(self);
 					self->response_received = true;
 
 					if (i == 0)
@@ -364,11 +436,14 @@ void saveResponse(struct ViettelSDK *self, UART_HandleTypeDef *huart,
 					else if (i == 3)
 					{
 						sprintf(self->log_content,
-								"Received subcribe messages from platform!");
-						self->mqtt_params.receiveSubcribe = true;
+								"Received messages from CoAp Server!");
+						self->coap_params.receiveRespond = true;
+						if(strstr(self->response_main_buffer,"AlarmReport"))
+						self->coap_params.ReportStatus = AlarmReportSatus(self->response_main_buffer);
 					}
 					writeLog(self, LOG_INFO, self->log_content, true);
 					self->passively_listen = false;
+					clearMainBuffer(self);
 					return;
 				}
 			}
@@ -646,17 +721,18 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				continue;
 			}
 
+			/* AT+CBC */
+			if (readVoltage(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
 			/* AT+QENG? */
 			if (readReportNetworkState(self) == STATUS_SUCCESS)				//check to fix at this line
 			{
 				break;
 			}
 
-			/* AT+CBC */
-			if (readVoltage(self) != STATUS_SUCCESS)
-			{
-				continue;
-			}
+
 		}
 
 		if (try == -1)
@@ -684,13 +760,14 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			continue;
 		}
 
+		if(smoke_hler->AlarmSatus != 1)
 		/* AT+CSCLK */
 		if (configureSlowClock(self, 1) != STATUS_SUCCESS)			// check this line
 		{
 			continue;
 		}
 
-		HAL_Delay(5000);
+		HAL_Delay(2000);
 
 		try = 3;
 		while (try--)
@@ -743,84 +820,82 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	while (self->stage == 4)
 	{
 
-//		/* AT+CMQNEW? */
-//		if(checkCoapConnecttion(self) != STATUS_SUCCESS)
-//		{
-//			continue;
-//		}
-//
-//		if (self->coap_params.connected)
-//		{
-//			/* AT+CMQDISCON */
-//			if (COAPDisconnect(self) != STATUS_SUCCESS)
+		if(checkCoapConnection(self) != STATUS_SUCCESS)
+			continue;
+		if(self->coap_params.connected != 1)
+		{
+			/* AT+CMQCON */
+			if (CreateCoAPContex(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+//			if (ConfigCoApMessageOpt(self,NULL,6) != STATUS_SUCCESS)
 //			{
 //				continue;
 //			}
-//		}
-
-//		try = 3;
-//		while (try--)
-//		{
-//			/* AT+QCOAPOPEN */
-//			if (newCOAP(self) == STATUS_SUCCESS)
-//			{
-//				break;
-//			}
-//		}
-//
-//		if (try == -1)
-//		{
-//			/* Fail to create MQTT connection */
-//			powerOffModule(self, false);
-//			sleepMCU(self, SLEEP_INTERVAL);
-//			resetMCU(self);
-//		}
-
-		/* AT+CMQCON */
-		if (CreateCoAPContex(self) != STATUS_SUCCESS)
-		{
-			continue;
-		}
-		if (ConfigCoApMessageOpt(self, "device") != STATUS_SUCCESS)
-		{
-			continue;
+			if (ConfigCoApMessageOpt(self, "device") != STATUS_SUCCESS)
+			{
+				continue;
+			}
 		}
 
 		try = 3;
 		while (try--)
 		{
-			/* AT+CMQPUB */
-//			if (sendMQTTPub(self,
-//					"messages/ef2885df-341c-44e6-9fbf-a185a36a8f1a/gps", 1, 0,
-//					0, self->mqtt_params.message) != STATUS_SUCCESS)
-//			{
-//				wakeUpModule(self);
-//				continue;
-//			}
-
+			if (ConfigCoApHeader(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
 			if (sendCoAPMessage(self, self->coap_params.message, 1, 2) != STATUS_SUCCESS)
 			{
 				wakeUpModule(self);
 				continue;
 			}
-//			self->passively_listen = true;
-//			self->receiver_subscribe_timer = HAL_GetTick();
-//			while (!self->mqtt_params.receiveSubcribe)
-//			{
-//				if (HAL_GetTick() - self->receiver_subscribe_timer
-//						>= RECEIVE_SUBSCRIBE_TIMEOUT
-//						|| self->mqtt_params.receiveSubcribe)
-//				{
-//					break;
-//				}
-//			}
-//
-//			if (self->mqtt_params.receiveSubcribe)
-//			{
-//				HAL_Delay(2000);
-//				break;
-//			}
-		}
+
+			self->passively_listen = true;
+			self->coap_params.receiveRespond = false;
+			self->receiver_subscribe_timer = HAL_GetTick();
+			while (!self->coap_params.receiveRespond)
+			{
+				if (HAL_GetTick() - self->receiver_subscribe_timer
+						>= RECEIVE_SUBSCRIBE_TIMEOUT
+						|| self->coap_params.receiveRespond)
+				{
+					break;
+				}
+			}
+
+			if (ConfigCoApHeader(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+			char path[50];
+			sprintf(path,"device?deviceId=%s",self->deviceID);
+			if (ConfigCoApMessageOpt(self,path) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+			if (sendCoAPMessage(self,NULL, 1, 1) != STATUS_SUCCESS)		//GET with empty message
+			{
+				wakeUpModule(self);
+				continue;
+			}
+
+			self->passively_listen = true;
+			self->coap_params.receiveRespond = false;
+			self->receiver_subscribe_timer = HAL_GetTick();
+			while (!self->coap_params.receiveRespond)
+			{
+				if (HAL_GetTick() - self->receiver_subscribe_timer
+						>= RECEIVE_SUBSCRIBE_TIMEOUT
+						|| self->coap_params.receiveRespond)
+				{
+					break;
+				}
+			}
+
+			if(self->coap_params.ReportStatus == 0)
+				smoke_hler->AlarmSatus = 0;
 
 		if (try == -1)
 		{
@@ -879,13 +954,20 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			}
 		}
 
-		/* AT+CMQDISCON */
-		if (COAPDisconnect(self) != STATUS_SUCCESS)
+		if(smoke_hler->AlarmSatus != 1)			//Periodic report
 		{
-			continue;
-		}
+			/* AT+CMQDISCON */
+			if (COAPDisconnect(self) == STATUS_SUCCESS)
+			{
+				break;
+			}
+			self->stage = 1;
 
-		self->stage = 1;
+		}
+		else
+			break;
+		}
+	break;
 	}
 
 	/* Wait module to go to sleep */
@@ -893,24 +975,31 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 //	{
 ////		HAL_IWDG_Refresh(&hiwdg);
 //	}
-	self->passively_listen = true;
-	self->sleep = false;
-	self->psm_timer = HAL_GetTick();
-	while (HAL_GetTick() - self->psm_timer <= WAIT_FOR_PSM_MODE)
+	if(smoke_hler->AlarmSatus != true)
 	{
-		if (self->sleep || (HAL_GetTick() - self->psm_timer) > WAIT_FOR_PSM_MODE)
+		self->passively_listen = true;
+		self->sleep = false;
+		self->psm_timer = HAL_GetTick();
+		while (HAL_GetTick() - self->psm_timer <= WAIT_FOR_PSM_MODE)
 		{
-			break;
+			if (self->sleep || (HAL_GetTick() - self->psm_timer) > WAIT_FOR_PSM_MODE)
+			{
+				break;
+			}
 		}
 	}
 
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
 	//Enter STOP mode Here.
-
-	Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
-
-	return; 		//this will return to stage 1
+	if(smoke_hler->AlarmSatus != true )
+	{
+		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
+		self->coap_params.ReportStatus = 1;
+	}
+	else if (smoke_hler->AlarmSatus)
+		self->stage = 3;
+	return;
 
 	try = 3;
 	while (try--)

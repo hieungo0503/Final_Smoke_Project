@@ -1,6 +1,6 @@
 #include "ViettelSDK_Network_Management.h"
 
-StatusType checkCoapConnecttion(struct ViettelSDK *self)
+StatusType checkCoapConnection(struct ViettelSDK *self)
 {
 	/* Initialize STATUS_UNKNOWN */
 	StatusType output_status = STATUS_UNKNOWN;
@@ -23,40 +23,82 @@ StatusType checkCoapConnecttion(struct ViettelSDK *self)
 		}
 		else
 		{
-			/* What to do if status is SUCCESS */
-			writeLog(self, LOG_INFO, self->log_content, false);
-			uint8_t num_tokens;
-			char **token_array = tokenizeString(self,
-					self->command_response.response, ":", &num_tokens);
-			removeSubstring(token_array[1], "OK");
-			removeChars(token_array[1], "\r\n ");
-
-			char **sub_token_array = tokenizeString(self, token_array[1], ",",
-					&num_tokens);
-			if (num_tokens != 4)
-			{
-				output_status = STATUS_IMPROPER_DATA;
-				sprintf(self->log_content,
-						"Checking COAP Connection Response is %s",
-						getStatusTypeString(output_status));
-				writeLog(self, LOG_ERROR, self->log_content, false);
-				return output_status;
-			}
-
-			if (!strcmp(sub_token_array[4], "0"))
+			if(!strstr(self->command_response.response,":"))
 			{
 				self->coap_params.connected = false;
+				writeLog(self, LOG_INFO, self->log_content, false);
 			}
 			else
 			{
-				self->coap_params.connected = true;
-			}
+				/* What to do if status is SUCCESS */
+				writeLog(self, LOG_INFO, self->log_content, false);
+				char res[50];
+				strcpy(res,self->command_response.response);
+				removeSubstring(res, "+QCOAPOPEN: ");
+				removeSubstring(res, "OK");
+				removeChars(res, "\"\r\n ");
 
-			sprintf(self->log_content,
-					"Read COAP parameters:\ClientID_id: %s\nCoAP_Server: %s\nPort: %s\nStatus: %d",
-					sub_token_array[0], sub_token_array[1], sub_token_array[2],
-					self->mqtt_params.connected);
-			writeLog(self, LOG_INFO, self->log_content, false);
+				char *ptr;
+				char *data_ptr;
+				uint8_t sign_count = 0;
+				uint8_t number_of_elements = 0;
+
+				/* Count number of comma since data may not be report */
+				/* Example: 3,"A794",0,,-56 */
+				ptr = strchr(res, ',');
+				while (ptr)
+				{
+					ptr += 1;
+					sign_count += 1;
+					ptr = strchr(ptr, ',');
+				}
+
+				/* Initialize elemtent array */
+				number_of_elements = sign_count + 1;
+				char *string_array[number_of_elements];
+				char clone_data[50];
+				uint8_t element_count = 0;
+
+				data_ptr = res;
+				strcpy(clone_data, data_ptr);
+				ptr = strchr(clone_data, ',');
+				sign_count = 0;
+				self->token = strtok(data_ptr, ",");
+				while (self->token && element_count < number_of_elements)
+				{
+					if (*(ptr + 1) == ',')
+					{
+						string_array[element_count] = static_null_string;
+						element_count++;
+					}
+					else
+					{
+						/* Element footer */
+						string_array[element_count] = self->token;
+						self->token = strtok(NULL, ",");
+						element_count++;
+					}
+
+					/* Delimiter footer */
+					if (sign_count != 0)
+					{
+						ptr += 1;
+						ptr = strchr(ptr, ',');
+					}
+					sign_count += 1;
+				}
+
+				if(strstr(string_array[3],"1") || strstr(string_array[3],"2"))
+					self->coap_params.connected = 1;
+				else
+					self->coap_params.connected = 0;
+
+				sprintf(self->log_content,
+						"Read COAP parameters:\ClientID_id: %s\nCoAP_Server: %s\nPort: %s\nStatus: %d",
+						string_array[0], string_array[1],string_array[2],
+						self->coap_params.connected);
+				writeLog(self, LOG_INFO, self->log_content, false);
+			}
 		}
 
 		return output_status;
@@ -138,6 +180,33 @@ StatusType CreateCoAPContex(struct ViettelSDK *self)
 
 }
 
+StatusType ConfigCoApHeader(struct ViettelSDK *self)
+{
+	/* AT+QCOAPOPTION */
+	/* Initialize STATUS_UNKNOWN */
+	StatusType output_status = STATUS_UNKNOWN;
+
+	/* Send command */
+		sprintf(self->command, "%s=%u,2",CONFIG_COAP_HEADER,
+			self->coap_params.client_id);
+
+	self->command_response = sendCommand(self, self->command,
+	RUN_COMMAND_COUNTER_DEFAULT + 4, RUN_COMMAND_TIMEOUT_MS_DEFAULT + 4000);
+	output_status = self->command_response.status;
+	sprintf(self->log_content, "Generate message ID randomly, token value is omitted is %s.",
+			getStatusTypeString(output_status));
+	if (output_status != STATUS_SUCCESS)
+	{
+		writeLog(self, LOG_WARNING, self->log_content, false);
+	}
+	else
+	{
+		writeLog(self, LOG_INFO, self->log_content, false);
+	}
+	return output_status;
+
+}
+
 StatusType ConfigCoApMessageOpt(struct ViettelSDK *self, char *url)
 {
 	/* AT+QCOAPOPTION */
@@ -145,8 +214,9 @@ StatusType ConfigCoApMessageOpt(struct ViettelSDK *self, char *url)
 	StatusType output_status = STATUS_UNKNOWN;
 
 	/* Send command */
-	sprintf(self->command, "%s=%u,0,11,%u,\"%s\"",CONFIG_COAP_MESSAGE_OPTIONS,
+		sprintf(self->command, "%s=%u,0,11,%u,\"%s\"",CONFIG_COAP_MESSAGE_OPTIONS,
 			self->coap_params.client_id,strlen(url),url);
+
 	self->command_response = sendCommand(self, self->command,
 	RUN_COMMAND_COUNTER_DEFAULT + 4, RUN_COMMAND_TIMEOUT_MS_DEFAULT + 4000);
 	output_status = self->command_response.status;
@@ -169,9 +239,14 @@ StatusType sendCoAPMessage(struct ViettelSDK *self, char message[],uint8_t type,
 	/* AT*CMQPUB */
 	StatusType output_status = STATUS_UNKNOWN;
 
-	sprintf(self->command, "%s=%u,%u,%u,0,%u,\"%s\"",
+	if(message == NULL)
+	sprintf(self->command, "%s=%u,%u,%u,0,0",			//send with Empty Message
+		SEND_COAP_MESSAGE,self->coap_params.client_id, type, method);
+	else
+	sprintf(self->command, "%s=%u,%u,%u,205,%u,\"%s\"",				//send with Message
 	SEND_COAP_MESSAGE,self->coap_params.client_id, type, method,
 			strlen(message)/2, message);
+
 	self->command_response = sendCommand(self, self->command,
 	RUN_COMMAND_COUNTER_DEFAULT + 1,
 	RUN_COMMAND_TIMEOUT_MS_DEFAULT + 2000);
@@ -186,7 +261,6 @@ StatusType sendCoAPMessage(struct ViettelSDK *self, char message[],uint8_t type,
 	else
 	{
 		writeLog(self, LOG_INFO, self->log_content, false);
-		self->mqtt_params.receiveSubcribe = false;
 	}
 	return output_status;
 }

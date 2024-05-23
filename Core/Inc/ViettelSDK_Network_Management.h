@@ -20,7 +20,7 @@ StatusType sendMQTTUnsub(struct ViettelSDK *self, char topic[]);
 StatusType MQTTDisconnect(struct ViettelSDK *self);
 
 /* COAP */
-StatusType checkCoapConnecttion(struct ViettelSDK *self);
+StatusType checkCoapConnection(struct ViettelSDK *self);
 
 StatusType COAPDisconnect(struct ViettelSDK *self);
 
@@ -31,5 +31,7 @@ StatusType CreateCoAPContex(struct ViettelSDK *self);
 StatusType sendCoAPMessage(struct ViettelSDK *self, char message[],uint8_t type, uint8_t method);
 
 StatusType ConfigCoApMessageOpt(struct ViettelSDK *self, char *url);
+
+StatusType ConfigCoApHeader(struct ViettelSDK *self);
 
 #endif /* VIETTELSDK_NETWORK_MANAGEMENT_H_ */

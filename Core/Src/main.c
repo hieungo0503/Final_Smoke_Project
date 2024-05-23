@@ -85,6 +85,8 @@ static void MX_TIM6_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+uint8_t test_case = 4; //Disable test mode
+
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	if(huart == &huart1)
@@ -100,6 +102,17 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	else if (huart == &huart2)
 	{
 		saveSmokeRespond(&smoke_handler, huart, Size);
+		if(test_case == 3)
+			smoke_handler.AlarmSatus = 1;
+
+		if(sdk_handler.coap_params.ReportStatus == 0)
+		{
+			smoke_handler.AlarmSatus = 0;
+	  		HAL_TIM_Base_Stop_IT(&htim6);
+	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
+	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
+			test_case = 4;
+		}
 
 		if(sdk_handler.StopMode == 1)
 		{
@@ -113,17 +126,17 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
 uint32_t timestatrt = 0;
 bool state = true;
-bool check = false;
+bool btn_test = false;
 uint16_t count = 0;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if(GPIO_Pin == GPIO_PIN_5 && state == true){
+		btn_test = true;
 		HAL_TIM_Base_Start_IT(&htim2);
 		state = false;
 
 		timestatrt = HAL_GetTick();
-		check = true;
 	}
 	else{
 		__NOP();
@@ -187,7 +200,7 @@ void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	if (!sht3x_init(&handle)) {
+ 	if (!sht3x_init(&handle)) {
 	    printf("SHT3x access failed.\n\r");
 	}
   /* USER CODE END 1 */
@@ -210,18 +223,20 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART1_UART_Init();
+
   MX_RTC_Init();
   MX_TIM2_Init();
   MX_DMA_Init();
-  MX_USART2_UART_Init();
+
   MX_I2C1_Init();
   MX_TIM6_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  if (WATCHDOG_TIMER)
-  	{
-  		MX_IWDG_Init();
-  	}
+//  if (WATCHDOG_TIMER)
+//  	{
+//  		MX_IWDG_Init();
+//  	}
 
   	/* USER CODE BEGIN 2 */
 
@@ -232,7 +247,7 @@ int main(void)
 
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
-  	addDeviceID(&sdk_handler, "device_TifzLt");
+  	addDeviceID(&sdk_handler, "device_i9TvUJ");
 
   	if(SMOKE_EN){
   	initialSomke(&smoke_handler, &huart2, &hdma_usart2_rx, 41, GPIOA, GPIO_PIN_4, 2000);
@@ -249,25 +264,31 @@ int main(void)
 //	  if(SWO_DEBUG)
 //	  printf("Hello world\n");
 //
-//	  if(sdk_handler.sleep == false)
-//	  {
-//		  if(SHT3X_EN)
-//		  READ_SHT30_SENSOR();
-//
-//		  connectToPlatform(&sdk_handler,&smoke_handler);
-//	  }
-//
-//
-//	  if(smoke_handler.AlarmSatus == false)
-//	  {
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
-//		  HAL_Delay(10);
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-//
-//		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
-//	  }
+	  if((sdk_handler.sleep == false && test_case == 4) || smoke_handler.AlarmSatus)	//Periodical
+	  {
+		  if(SHT3X_EN)
+		  READ_SHT30_SENSOR();
 
-	  if(check == true && HAL_GetTick() - timestatrt > 400)
+		  connectToPlatform(&sdk_handler,&smoke_handler);
+	  }
+	  else if (test_case == 2)
+	  {
+		  if(SHT3X_EN)
+		  READ_SHT30_SENSOR();
+
+		  connectToPlatform(&sdk_handler,&smoke_handler);
+
+		  ConfigTimerPeriod(&htim6, 200);		//wait for another test_case
+
+		  test_case = 0;
+	  }
+
+	  if(smoke_handler.AlarmSatus == false && btn_test != true && test_case == 4)
+	  {
+		  Enter_Stop1Mode(&sdk_handler, &huart1, &huart2);
+	  }
+
+	  if(btn_test == true && HAL_GetTick() - timestatrt > 400)
 	  {
 		  switch(count)
 		  {
@@ -276,11 +297,15 @@ int main(void)
 		  		  ConfigTimerPeriod(&htim6, 200);
 
 				  printf("count = 1 \n");
+				  test_case = 0;
 				  count = 0;
 				  break;
 		  	  case 2:
 		  		// Do test for report data (led blink at 500ms and after complete blink follow to mos and off)
 		  		  ConfigTimerPeriod(&htim6, 500);
+
+		  		  sdk_handler.sleep = false; //wake up module
+		  		  test_case = 2;
 
 		  		  printf("count = 2 \n");
 				  count = 0;
@@ -288,6 +313,10 @@ int main(void)
 		  	  case 3:
 		  		// Do test alarm buzzer (buzzer on, led blink 1s)
 		  		  ConfigTimerPeriod(&htim6, 1000);
+
+    		  	  sdk_handler.sleep = false; //wake up module
+    		  	  test_case = 3;
+		  		  smoke_handler.AlarmSatus = true;
 
 		  		  printf("count = 3 \n");
 		  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
@@ -297,12 +326,13 @@ int main(void)
 		  		HAL_TIM_Base_Stop_IT(&htim6);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-		  		//HAL_TIM_Base_Start_IT(&htim2);
+		  		smoke_handler.AlarmSatus = false;
+		  		test_case = 4;
 		  		count = 0;
 		  		  break;
 		  }
 
-		  check = false;
+		  btn_test = false;
 	  }
 
     /* USER CODE END WHILE */
@@ -505,7 +535,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 7999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 1000;
+  htim6.Init.Period = 20000;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {

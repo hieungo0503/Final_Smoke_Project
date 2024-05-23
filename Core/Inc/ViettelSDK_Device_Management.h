@@ -35,6 +35,10 @@ extern TIM_HandleTypeDef htim2;
 
 struct ViettelSDK
 {
+	char deviceID[20];
+	char deviceID_Hex[20];
+
+	uint8_t testCase;
 
 	/* Sleep */
 	bool sleep;

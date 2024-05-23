@@ -11,7 +11,7 @@ static const char *ERROR_COMMAND_SIGN[] =
 { "ERROR\r\n", "ERROR" }; // intentionally left unused
 
 static const char *PASSIVE_RESPONSE_SIGN[] =
-{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"EN", "+QNBIOTEVENT: \"EX", "+CMQPUB:" }; // intentionally left unused
+{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"EN", "+QNBIOTEVENT: \"EX", "+QCOAPURC: "}; // intentionally left unused
 
 #ifndef COMMAND_DELAY_MS
 #define COMMAND_DELAY_MS (1000U)
@@ -66,7 +66,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef RESPONSE_RECEIVE_BUFFER_SIZE
-#define RESPONSE_RECEIVE_BUFFER_SIZE (50U)
+#define RESPONSE_RECEIVE_BUFFER_SIZE (1200U)
 #endif
 
 #ifndef SLEEP_INTERVAL
