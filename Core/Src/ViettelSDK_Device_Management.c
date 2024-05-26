@@ -9,7 +9,7 @@ void initializeSDK(struct ViettelSDK *self, UART_HandleTypeDef *debugger_uart,
 	self->addDataSuccessfully = true;
 	self->sleep = false;
 	self->StopMode = true;
-	self->testCase = 4; //Disable test mode
+	self->testCase = 0; //Disable test mode
 	self->coap_params.ReportStatus = true;
 	self->mqtt_params.receiveSubcribeTimeout = RECEIVE_SUBSCRIBE_TIMEOUT;
 	self->warming_up_counter = WARMING_UP_COUNT;
@@ -959,10 +959,9 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			/* AT+CMQDISCON */
 			if (COAPDisconnect(self) == STATUS_SUCCESS)
 			{
+				self->stage = 1;
 				break;
 			}
-			self->stage = 1;
-
 		}
 		else
 			break;
@@ -975,7 +974,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 //	{
 ////		HAL_IWDG_Refresh(&hiwdg);
 //	}
-	if(smoke_hler->AlarmSatus != true)
+	if(smoke_hler->AlarmSatus != true && self->testCase == 0)
 	{
 		self->passively_listen = true;
 		self->sleep = false;
@@ -989,10 +988,11 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		}
 	}
 
+
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
 	//Enter STOP mode Here.
-	if(smoke_hler->AlarmSatus != true )
+	if(smoke_hler->AlarmSatus != true)
 	{
 		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 		self->coap_params.ReportStatus = 1;

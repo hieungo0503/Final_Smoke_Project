@@ -11,7 +11,7 @@ static const char *ERROR_COMMAND_SIGN[] =
 { "ERROR\r\n", "ERROR" }; // intentionally left unused
 
 static const char *PASSIVE_RESPONSE_SIGN[] =
-{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"EN", "+QNBIOTEVENT: \"EX", "+QCOAPURC: "}; // intentionally left unused
+{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"ENTER PSM", "+QNBIOTEVENT: \"EX", "+QCOAPURC: "}; // intentionally left unused
 
 #ifndef COMMAND_DELAY_MS
 #define COMMAND_DELAY_MS (1000U)

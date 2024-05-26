@@ -87,6 +87,7 @@ static void MX_TIM6_Init(void);
 
 uint8_t test_case = 4; //Disable test mode
 
+void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time);
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
 	if(huart == &huart1)
@@ -105,13 +106,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		if(test_case == 3)
 			smoke_handler.AlarmSatus = 1;
 
-		if(sdk_handler.coap_params.ReportStatus == 0)
+		if(sdk_handler.coap_params.ReportStatus == 0 && sdk_handler.testCase !=0)
 		{
 			smoke_handler.AlarmSatus = 0;
-	  		HAL_TIM_Base_Stop_IT(&htim6);
+			test_case = 0;
+			ConfigTimerPeriod(&htim6, 200);
 	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-			test_case = 4;
+	  		sdk_handler.coap_params.ReportStatus = 1;
 		}
 
 		if(sdk_handler.StopMode == 1)
@@ -189,7 +191,7 @@ int _write(int file, char *ptr, int len)
 
 void READ_SHT30_SENSOR(void);
 void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart);
-void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time);
+
 
 /* USER CODE END 0 */
 
@@ -264,7 +266,7 @@ int main(void)
 //	  if(SWO_DEBUG)
 //	  printf("Hello world\n");
 //
-	  if((sdk_handler.sleep == false && test_case == 4) || smoke_handler.AlarmSatus)	//Periodical
+	  if((sdk_handler.sleep == false && sdk_handler.testCase == 0) || smoke_handler.AlarmSatus)	//Periodical
 	  {
 		  if(SHT3X_EN)
 		  READ_SHT30_SENSOR();
@@ -298,6 +300,7 @@ int main(void)
 
 				  printf("count = 1 \n");
 				  test_case = 0;
+				  sdk_handler.testCase = 1;
 				  count = 0;
 				  break;
 		  	  case 2:
@@ -306,6 +309,7 @@ int main(void)
 
 		  		  sdk_handler.sleep = false; //wake up module
 		  		  test_case = 2;
+		  		  sdk_handler.testCase = 1;
 
 		  		  printf("count = 2 \n");
 				  count = 0;
@@ -316,6 +320,7 @@ int main(void)
 
     		  	  sdk_handler.sleep = false; //wake up module
     		  	  test_case = 3;
+    		  	  sdk_handler.testCase = 1;
 		  		  smoke_handler.AlarmSatus = true;
 
 		  		  printf("count = 3 \n");
@@ -327,6 +332,7 @@ int main(void)
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
 		  		smoke_handler.AlarmSatus = false;
+		  		sdk_handler.testCase = 0;
 		  		test_case = 4;
 		  		count = 0;
 		  		  break;

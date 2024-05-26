@@ -38,7 +38,7 @@ struct ViettelSDK
 	char deviceID[20];
 	char deviceID_Hex[20];
 
-	uint8_t testCase;
+	bool testCase;
 
 	/* Sleep */
 	bool sleep;
