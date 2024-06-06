@@ -1001,10 +1001,10 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	//Enter STOP mode Here.
 	if(smoke_hler->AlarmSatus != true  && self->testCase == 0)
 	{
-		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 		self->coap_params.ReportStatus = 1;
-//		self->passively_listen = true;
-//		resetDMAforPSM(self);
+		self->passively_listen = true;
+		resetDMAforPSM(self);
+		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 	}
 	else if (smoke_hler->AlarmSatus)
 		self->stage = 3;

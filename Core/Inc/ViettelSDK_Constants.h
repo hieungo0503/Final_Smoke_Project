@@ -70,7 +70,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef PSM_RECEIVE_TAU_BUFFER_SIZE
-#define PSM_RECEIVE_TAU_BUFFER_SIZE (26U)
+#define PSM_RECEIVE_TAU_BUFFER_SIZE (24U)
 #endif
 
 #ifndef SLEEP_INTERVAL

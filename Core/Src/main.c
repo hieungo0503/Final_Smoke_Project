@@ -99,6 +99,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
 		}
+
+
 	}
 	else if (huart == &huart2)
 	{
@@ -121,6 +123,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
 		}
+
 	}
 }
 
@@ -245,9 +248,6 @@ int main(void)
   	initializeSDK(&sdk_handler,NULL, &huart1, &hdma_usart1_rx, GPIOA,
   	GPIO_PIN_7);
 
-  	//ConfigStop1ModeUART(&sdk_handler, &huart1);
-//  	resetDMAInterrupt(&sdk_handler);
-
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
   	addDeviceID(&sdk_handler, "device_mYSg1M");
@@ -255,7 +255,6 @@ int main(void)
   	if(SMOKE_EN){
   	initialSomke(&smoke_handler, &huart2, &hdma_usart2_rx, 41, GPIOA, GPIO_PIN_4, 2000);
     resetDMAInterrupt_BM22(&smoke_handler);
-    ConfigStop1ModeUART(&sdk_handler, &huart2);
   	}
 
   /* USER CODE END 2 */
@@ -342,6 +341,7 @@ int main(void)
 
 		  btn_test = false;
 	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -725,34 +725,6 @@ void READ_SHT30_SENSOR(void)
 	  smoke_handler.temperature = temperature;
 	  smoke_handler.humidity = humidity;
 
-}
-
-void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart)
-{
-
-	/* make sure that no UART transfer is on-going */
-	  while(__HAL_UART_GET_FLAG(huart, USART_ISR_BUSY) == SET);
-	  /* make sure that UART is ready to receive
-	   * (test carried out again later in HAL_UARTEx_StopModeWakeUpSourceConfig) */
-	  while(__HAL_UART_GET_FLAG(huart, USART_ISR_REACK) == RESET);
-
-	  /* set the wake-up event:
-	   * specify wake-up on RXNE flag */
-	  WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
-	  if (HAL_UARTEx_StopModeWakeUpSourceConfig(huart, WakeUpSelection)!= HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-	  /* Enable the UART Wake UP from STOP1 mode Interrupt */
-	  __HAL_UART_ENABLE_IT(huart, UART_IT_WUF);
-	  //Enable Receive IT
-
-	  /* about to enter STOP1 mode: */
-	  /* enable MCU wake-up by UART */
-	  HAL_UARTEx_EnableStopMode(huart);
-
-	  sprintf(self->log_content, "Config Stop1 Mode For Uart Success \n");
-	  writeLog(self, LOG_INFO, self->log_content, true);
 }
 
 void ConfigTimerPeriod(TIM_HandleTypeDef *htim, uint16_t Time)
