@@ -37,6 +37,13 @@ void resetDMAInterrupt(struct ViettelSDK *self)
 	__HAL_DMA_DISABLE_IT(self->module_uart_hdma, DMA_IT_HT);
 }
 
+void resetDMAforPSM(struct ViettelSDK *self)
+{
+	HAL_UARTEx_ReceiveToIdle_DMA(self->module_uart,
+			self->PSM_TAU_WAKEUP, PSM_RECEIVE_TAU_BUFFER_SIZE);
+	__HAL_DMA_DISABLE_IT(self->module_uart_hdma, DMA_IT_HT);
+}
+
 bool validateUARTPorts(struct ViettelSDK *self)
 {
 	bool validated = true;

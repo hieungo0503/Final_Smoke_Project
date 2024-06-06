@@ -201,4 +201,9 @@
 #ifndef READVOLTAGE
 #define READVOLTAGE "AT+CBC"
 #endif
+
+#ifndef RAI
+#define RAI "AT+QNBIOTRAI"
+#endif
+
 #endif /* VIETTELSDK_COMMAND_LIST_H_ */

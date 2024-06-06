@@ -126,6 +126,7 @@ StatusType COAPDisconnect(struct ViettelSDK *self)
 	}
 	return output_status;
 }
+
 StatusType newCOAP(struct ViettelSDK *self)
 {
 	/* AT+QCOAPOPEN */

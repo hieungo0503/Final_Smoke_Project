@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+UART_WakeUpTypeDef WakeUpSelection;
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

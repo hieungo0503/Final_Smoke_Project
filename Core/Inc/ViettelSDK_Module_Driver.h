@@ -63,4 +63,6 @@ StatusType setControlTheDataOutputFormat(struct ViettelSDK *self);
 
 StatusType readVoltage(struct ViettelSDK *self);
 
+StatusType ReleaseAssistanceIndication(struct ViettelSDK *self);
+
 #endif /* VIETTELSDK_MODULE_DRIVER_H_ */

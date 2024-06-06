@@ -744,7 +744,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 
 		/* Register PSM with cell */
 		/* AT+CPSMS */
-		if (configurePSM(self, 1, "00101010", "00000010") != STATUS_SUCCESS)
+		if (configurePSM(self, 1, "00100011", "00010100") != STATUS_SUCCESS)
 		{
 			continue;
 		}
@@ -959,6 +959,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			/* AT+CMQDISCON */
 			if (COAPDisconnect(self) == STATUS_SUCCESS)
 			{
+				ReleaseAssistanceIndication(self);
 				self->stage = 1;
 				break;
 			}
@@ -979,11 +980,17 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		self->passively_listen = true;
 		self->sleep = false;
 		self->psm_timer = HAL_GetTick();
+		resetDMAInterrupt(self);
 		while (HAL_GetTick() - self->psm_timer <= WAIT_FOR_PSM_MODE)
 		{
 			if (self->sleep || (HAL_GetTick() - self->psm_timer) > WAIT_FOR_PSM_MODE)
 			{
+				self->stage = 1;
 				break;
+			}
+			if(self->sleep == false && self->passively_listen == false)
+			{
+				self->passively_listen = true;
 			}
 		}
 	}
@@ -992,10 +999,12 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
 	//Enter STOP mode Here.
-	if(smoke_hler->AlarmSatus != true)
+	if(smoke_hler->AlarmSatus != true  && self->testCase == 0)
 	{
 		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 		self->coap_params.ReportStatus = 1;
+//		self->passively_listen = true;
+//		resetDMAforPSM(self);
 	}
 	else if (smoke_hler->AlarmSatus)
 		self->stage = 3;

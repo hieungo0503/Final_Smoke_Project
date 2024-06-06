@@ -1151,3 +1151,25 @@ StatusType readVoltage(struct ViettelSDK *self)
 	}
 	return output_status;
 }
+
+StatusType ReleaseAssistanceIndication(struct ViettelSDK *self)
+{
+	/* AT+QCOAPCLOSE */
+	StatusType output_status = STATUS_UNKNOWN;
+	sprintf(self->command, "%s=1", RAI);
+	self->command_response = sendCommand(self, self->command,
+	RUN_COMMAND_COUNTER_DEFAULT, RUN_COMMAND_TIMEOUT_MS_DEFAULT);
+	output_status = self->command_response.status;
+	sprintf(self->log_content, "Release Assistance Indication is %s.",
+			getStatusTypeString(output_status));
+	if (output_status != STATUS_SUCCESS)
+	{
+		writeLog(self, LOG_WARNING, self->log_content, false);
+	}
+	else
+	{
+		writeLog(self, LOG_INFO, self->log_content, false);
+		self->mqtt_params.connected = false;
+	}
+	return output_status;
+}

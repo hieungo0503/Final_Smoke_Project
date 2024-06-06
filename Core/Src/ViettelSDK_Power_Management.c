@@ -42,13 +42,31 @@ void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_H
 {
 	  self->StopMode = 1;
 
-//	  HAL_UARTEx_EnableStopMode(huart1);
+		/* make sure that no UART transfer is on-going */
+		  while(__HAL_UART_GET_FLAG(huart2, USART_ISR_BUSY) == SET);
+		  /* make sure that UART is ready to receive
+		   * (test carried out again later in HAL_UARTEx_StopModeWakeUpSourceConfig) */
+		  while(__HAL_UART_GET_FLAG(huart2, USART_ISR_REACK) == RESET);
+
+		  /* set the wake-up event:
+		   * specify wake-up on RXNE flag */
+		  WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
+		  if (HAL_UARTEx_StopModeWakeUpSourceConfig(huart2, WakeUpSelection)!= HAL_OK)
+		  {
+		    Error_Handler();
+		  }
+		  /* Enable the UART Wake UP from STOP1 mode Interrupt */
+		  __HAL_UART_ENABLE_IT(huart2, UART_IT_WUF);
+		  //Enable Receive IT
+
+
+	  //HAL_UARTEx_EnableStopMode(huart1);
 	  HAL_UARTEx_EnableStopMode(huart2);
 
 	  HAL_SuspendTick();
 
-	  HAL_DisableDBGStopMode();
-	  //HAL_EnableDBGStopMode();
+	  //HAL_DisableDBGStopMode();
+	  HAL_EnableDBGStopMode();
 
       HAL_PWR_EnableSleepOnExit();
 	  /* enter STOP1 mode */
@@ -60,7 +78,7 @@ void Exit_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_Ha
 	SystemClock_Config();
 	HAL_ResumeTick();
 	//	HAL_UARTEx_DisableStopMode(huart1);
-	//	HAL_UARTEx_DisableStopMode(huart2);
+	//HAL_UARTEx_DisableStopMode(huart2);
 	HAL_PWR_DisableSleepOnExit();
 }
 

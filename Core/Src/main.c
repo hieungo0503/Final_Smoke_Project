@@ -47,7 +47,7 @@ struct Smoke_Data smoke_handler;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-UART_WakeUpTypeDef WakeUpSelection;
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -202,7 +202,7 @@ void ConfigStop1ModeUART(struct ViettelSDK *self, UART_HandleTypeDef *huart);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
- 	if (!sht3x_init(&handle)) {
+	if (!sht3x_init(&handle)) {
 	    printf("SHT3x access failed.\n\r");
 	}
   /* USER CODE END 1 */
@@ -246,10 +246,11 @@ int main(void)
   	GPIO_PIN_7);
 
   	//ConfigStop1ModeUART(&sdk_handler, &huart1);
+//  	resetDMAInterrupt(&sdk_handler);
 
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
-  	addDeviceID(&sdk_handler, "device_i9TvUJ");
+  	addDeviceID(&sdk_handler, "device_mYSg1M");
 
   	if(SMOKE_EN){
   	initialSomke(&smoke_handler, &huart2, &hdma_usart2_rx, 41, GPIOA, GPIO_PIN_4, 2000);
@@ -265,7 +266,7 @@ int main(void)
   {
 //	  if(SWO_DEBUG)
 //	  printf("Hello world\n");
-//
+
 	  if((sdk_handler.sleep == false && sdk_handler.testCase == 0) || smoke_handler.AlarmSatus)	//Periodical
 	  {
 		  if(SHT3X_EN)
@@ -328,6 +329,7 @@ int main(void)
 		  		  count = 0;
 		  		  break;
 		  	  default:
+
 		  		HAL_TIM_Base_Stop_IT(&htim6);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
@@ -340,7 +342,6 @@ int main(void)
 
 		  btn_test = false;
 	  }
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -636,15 +637,16 @@ static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA1_Channel6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 1, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+  /* DMA2_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel7_IRQn);
 
 }
 
