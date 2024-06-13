@@ -302,7 +302,7 @@ struct CommandResponse sendCommand(struct ViettelSDK *self, char *command,
 	{
 		if (WATCHDOG_TIMER)
 		{
-//			HAL_IWDG_Refresh(&hiwdg);
+			HAL_IWDG_Refresh(&hiwdg);
 		}
 
 		self->command_response.status = STATUS_UNKNOWN;
@@ -400,7 +400,6 @@ void saveResponse(struct ViettelSDK *self, UART_HandleTypeDef *huart,
 
 		/* Start thce DMA again */
 		resetDMAInterrupt(self);
-
 		/* Checking passively listen */
 		if (self->passively_listen)
 		{
@@ -440,6 +439,12 @@ void saveResponse(struct ViettelSDK *self, UART_HandleTypeDef *huart,
 						self->coap_params.receiveRespond = true;
 						if(strstr(self->response_main_buffer,"AlarmReport"))
 						self->coap_params.ReportStatus = AlarmReportSatus(self->response_main_buffer);
+					}
+					else if (i == 4)
+					{
+						sprintf(self->log_content,
+								"Received PSM Registed!");
+						self->psm_registed = true;
 					}
 					writeLog(self, LOG_INFO, self->log_content, true);
 					self->passively_listen = false;
@@ -542,11 +547,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		if (configureSlowClock(self, 0) != STATUS_SUCCESS)
 			continue;
 		}
-		/* AT+CPSMS */
-		if (TurnOffPSM(self, 0) != STATUS_SUCCESS)
-		{
-			continue;
-		}
+
 		/* Deregister PSM with cell */
 
 //		if (setControlTheDataOutputFormat(self) != STATUS_SUCCESS)
@@ -636,16 +637,81 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			if ((readEPSNetworkRegistrationStatus(self, true) == STATUS_SUCCESS)
 					&& (self->stat == 1))
 			{
+				/* AT+CEREG */
+				if (configureEPSNetworkRegistration(self, 4) != STATUS_SUCCESS)
+				{
+					continue;
+				}
+
+				/* AT+CPSMS */
+				if (TurnOffPSM(self, 0) != STATUS_SUCCESS)
+				{
+					continue;
+				}
+
+				self->passively_listen = true;
+				self->psm_registed = false;
+				self->receiver_subscribe_timer = HAL_GetTick();
+				while (!self->coap_params.receiveRespond)
+				{
+					if (HAL_GetTick() - self->receiver_subscribe_timer
+							>= 3000
+							|| self->psm_registed == true)
+					{
+						self->passively_listen = false;
+						break;
+					}
+					else
+						self->passively_listen = true;
+				}
+
+				if (configurePSM(self, 1, "00011111", "00000101") != STATUS_SUCCESS)
+				{
+					continue;
+				}
+				self->passively_listen = true;
+				self->psm_registed = false;
+				self->receiver_subscribe_timer = HAL_GetTick();
+				while (!self->coap_params.receiveRespond)
+				{
+					if (HAL_GetTick() - self->receiver_subscribe_timer
+							>= 3000
+							|| self->psm_registed == true)
+					{
+						break;
+					}
+				}
+
 				self->stage = 3;
 				break;
 			}
-			HAL_Delay(5000);
+			else
+				continue;
+			HAL_Delay(1000);
 		}
 
 		if (try == -1)
 		{
 			/* Cannot register automatically. Try to register manually 3 times  */
 			try = 3;
+			/* AT+CFUN= */
+			if (setPhoneFunctionality(self, 0) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+			HAL_Delay(3000);
+
+			/* AT+QCGDEFCONT */
+			if (setDefaultPSDConnection(self) != STATUS_SUCCESS)
+			{
+				continue;
+			}
+
+			/* AT+CFUN= */
+			if (setPhoneFunctionality(self, 1) != STATUS_SUCCESS)
+			{
+				continue;
+			}
 			while (try--)
 			{
 				sprintf(self->log_content,
@@ -653,23 +719,6 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 						3 - try);
 				writeLog(self, LOG_WARNING, self->log_content, true);
 
-				/* AT+CFUN= */
-				if (setPhoneFunctionality(self, 0) != STATUS_SUCCESS)
-				{
-					continue;
-				}
-
-				/* AT+QCGDEFCONT */
-				if (setDefaultPSDConnection(self) != STATUS_SUCCESS)
-				{
-					continue;
-				}
-
-				/* AT+CFUN= */
-				if (setPhoneFunctionality(self, 1) != STATUS_SUCCESS)
-				{
-					continue;
-				}
 
 				HAL_Delay(3000);
 
@@ -687,10 +736,6 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				/* Fail to register manually */
 				sprintf(self->log_content, "Fail to register manually!");
 				writeLog(self, LOG_WARNING, self->log_content, true);
-				powerOffModule(self, false);
-
-				/* Sleep */
-				sleepMCU(self, SLEEP_INTERVAL);
 				resetMCU(self);
 			}
 		}
@@ -703,6 +748,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		try = 3;
 		while (try--)
 		{
+
 			/* AT+CGDCONT= */
 			if (readDynamicParamPDPContext(self, false) != STATUS_SUCCESS)
 			{
@@ -744,18 +790,9 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 
 		/* Register PSM with cell */
 		/* AT+CPSMS */
-		if (configurePSM(self, 1, "00100011", "00010100") != STATUS_SUCCESS)
-		{
-			continue;
-		}
+
 		/* AT+QNBIOTEVENT */
 		if (configureWakeupIndication(self, 1) != STATUS_SUCCESS)
-		{
-			continue;
-		}
-
-		/* AT+CEREG */
-		if (configureEPSNetworkRegistration(self, 4) != STATUS_SUCCESS)
 		{
 			continue;
 		}
@@ -766,8 +803,6 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		{
 			continue;
 		}
-
-		HAL_Delay(2000);
 
 		try = 3;
 		while (try--)
@@ -953,10 +988,9 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 				writeLog(self, LOG_INFO, self->log_content, true);
 			}
 		}
-
-		if(smoke_hler->AlarmSatus != 1)			//Periodic report
-		{
 			/* AT+CMQDISCON */
+		if(smoke_hler->AlarmSatus != true)
+		{
 			if (COAPDisconnect(self) == STATUS_SUCCESS)
 			{
 				ReleaseAssistanceIndication(self);
@@ -965,16 +999,22 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 			}
 		}
 		else
-			break;
+		{
+			self->stage = 3;
+			HAL_Delay(3000);
+			return;
+		}
+
 		}
 	break;
 	}
 
 	/* Wait module to go to sleep */
-//	if (WATCHDOG_TIMER)
-//	{
-////		HAL_IWDG_Refresh(&hiwdg);
-//	}
+	if (WATCHDOG_TIMER)
+	{
+		HAL_IWDG_Refresh(&hiwdg);
+		HAL_TIM_Base_Start_IT(&htim16);
+	}
 	if(smoke_hler->AlarmSatus != true && self->testCase == 0)
 	{
 		self->passively_listen = true;
@@ -995,6 +1035,11 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		}
 	}
 
+	if (WATCHDOG_TIMER)
+	{
+		HAL_TIM_Base_Stop_IT(&htim16);
+	}
+
 
 	//sleepMCU(self, SLEEP_INTERVAL);    //check here
 
@@ -1004,6 +1049,7 @@ void mainFlow(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		self->coap_params.ReportStatus = 1;
 		self->passively_listen = true;
 		resetDMAforPSM(self);
+		HAL_IWDG_Refresh(&hiwdg);
 		Enter_Stop1Mode(self, self->module_uart, smoke_hler->Somke_uart);
 	}
 	else if (smoke_hler->AlarmSatus)

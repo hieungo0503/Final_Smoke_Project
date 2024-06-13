@@ -421,7 +421,8 @@ void addSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 		addData(self,"testId","SENSOR",VALUE_CHAR_ARRAY);
 		addData(self,"details","",VALUE_CHAR);
 		addData(self, "AlarmSatus", &smoke_hler->AlarmSatus, VALUE_BOOL);
-		addData(self, "SmokeValue",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
+		addData(self, "whiteSmokeVal",&smoke_hler->smokeA_Data, VALUE_UINT16_T);
+		addData(self, "blackSmokeVal",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
 		addData(self, "Temperature", &smoke_hler->temperature, VALUE_FLOAT);
 		addData(self, "Humidity", &smoke_hler->humidity, VALUE_FLOAT);
 //		updateFLASHData(&sdk_handler);
@@ -431,7 +432,8 @@ void changeSensorData(struct ViettelSDK *self, struct Smoke_Data *smoke_hler)
 {
 	  //Save Temp Data
 		changeCurrentData(self, "AlarmSatus", &smoke_hler->AlarmSatus, VALUE_BOOL);
-		changeCurrentData(self, "SmokeValue",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
+		changeCurrentData(self, "whiteSmokeVal",&smoke_hler->smokeA_Data, VALUE_UINT16_T);
+		changeCurrentData(self, "blackSmokeVal",&smoke_hler->smokeB_Data, VALUE_UINT16_T);
 		changeCurrentData(self, "Temperature", &smoke_hler->temperature, VALUE_FLOAT);
 		changeCurrentData(self, "Humidity", &smoke_hler->humidity, VALUE_FLOAT);
 //		updateFLASHData(&sdk_handler);

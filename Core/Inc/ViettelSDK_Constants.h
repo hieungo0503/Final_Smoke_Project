@@ -11,7 +11,7 @@ static const char *ERROR_COMMAND_SIGN[] =
 { "ERROR\r\n", "ERROR" }; // intentionally left unused
 
 static const char *PASSIVE_RESPONSE_SIGN[] =
-{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"ENTER PSM", "+QNBIOTEVENT: \"EX", "+QCOAPURC: "}; // intentionally left unused
+{ "NORMAL POWER DOWN", "+QNBIOTEVENT: \"ENTER PSM", "+QNBIOTEVENT: \"EX", "+QCOAPURC: ", "+CEREG: 1" }; // intentionally left unused
 
 #ifndef COMMAND_DELAY_MS
 #define COMMAND_DELAY_MS (1000U)
@@ -58,7 +58,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef RECEIVE_SUBSCRIBE_TIMEOUT
-#define RECEIVE_SUBSCRIBE_TIMEOUT (10000U)
+#define RECEIVE_SUBSCRIBE_TIMEOUT (3000U)
 #endif
 
 #ifndef RESPONSE_MAIN_BUFFER_SIZE
@@ -66,7 +66,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef RESPONSE_RECEIVE_BUFFER_SIZE
-#define RESPONSE_RECEIVE_BUFFER_SIZE (1200U)
+#define RESPONSE_RECEIVE_BUFFER_SIZE (80U)
 #endif
 
 #ifndef PSM_RECEIVE_TAU_BUFFER_SIZE
@@ -78,7 +78,7 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef STAGE_DELAY_MS
-#define STAGE_DELAY_MS (2000U)
+#define STAGE_DELAY_MS (500U)
 #endif
 
 #ifndef SUCCESS_COMMAND_LENGTH
@@ -98,11 +98,11 @@ static const char *PASSIVE_RESPONSE_SIGN[] =
 #endif
 
 #ifndef WARMING_UP_COUNT
-#define WARMING_UP_COUNT (4U) /* Configured for PSM mode, DO NOT CHANGE */
+#define WARMING_UP_COUNT (2U) /* Configured for PSM mode, DO NOT CHANGE */
 #endif
 
 #ifndef WATCHDOG_TIMER
-#define WATCHDOG_TIMER (false)
+#define WATCHDOG_TIMER (1)
 #endif
 
 /* Debugger */

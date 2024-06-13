@@ -71,7 +71,7 @@ void saveSmokeRespond(struct Smoke_Data *self, UART_HandleTypeDef *huart, uint16
 						self->smokeA_Data = (self->response_main_buffer[17] << 8) | self->response_main_buffer[16];
 						self->smokeB_Data = (self->response_main_buffer[19] << 8) | self->response_main_buffer[18];
 
-						if(self->smokeB_Data > self->threshold)
+						if(self->smokeB_Data > self->threshold || self->smokeA_Data > self->threshold)
 							self->AlarmSatus = 1;
 						else
 							self->AlarmSatus = 0;

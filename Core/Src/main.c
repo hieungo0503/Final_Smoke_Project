@@ -53,10 +53,13 @@ struct Smoke_Data smoke_handler;
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+IWDG_HandleTypeDef hiwdg;
+
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim6;
+
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -77,6 +80,8 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_IWDG_Init(void);
+static void MX_TIM16_Init(void);
 /* USER CODE BEGIN PFP */
 
 //extern void initialise_monitor_handles(void);
@@ -99,12 +104,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
 		}
-
-
 	}
 	else if (huart == &huart2)
 	{
 		saveSmokeRespond(&smoke_handler, huart, Size);
+
 		if(test_case == 3)
 			smoke_handler.AlarmSatus = 1;
 
@@ -115,14 +119,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 			ConfigTimerPeriod(&htim6, 200);
 	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 	  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
-	  		sdk_handler.coap_params.ReportStatus = 1;
 		}
+		if(sdk_handler.coap_params.ReportStatus == 0)
+			smoke_handler.AlarmSatus = 0;
 
 		if(sdk_handler.StopMode == 1)
 		{
+			HAL_IWDG_Refresh(&hiwdg);
 			Exit_Stop1Mode(&sdk_handler, &huart1, &huart2);
 			sdk_handler.StopMode = 0;
 		}
+
+		  if(smoke_handler.AlarmSatus)
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
+		  else
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
+
 
 	}
 }
@@ -235,13 +247,11 @@ int main(void)
 
   MX_I2C1_Init();
   MX_TIM6_Init();
+  MX_IWDG_Init();
+  MX_TIM16_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-//  if (WATCHDOG_TIMER)
-//  	{
-//  		MX_IWDG_Init();
-//  	}
 
   	/* USER CODE BEGIN 2 */
 
@@ -250,7 +260,7 @@ int main(void)
 
   	setupCOAP_Parameters(&sdk_handler, "115.78.92.253",23025, 0);
 
-  	addDeviceID(&sdk_handler, "device_mYSg1M");
+  	addDeviceID(&sdk_handler, "device_lxsDT6");
 
   	if(SMOKE_EN){
   	initialSomke(&smoke_handler, &huart2, &hdma_usart2_rx, 41, GPIOA, GPIO_PIN_4, 2000);
@@ -272,6 +282,7 @@ int main(void)
 		  READ_SHT30_SENSOR();
 
 		  connectToPlatform(&sdk_handler,&smoke_handler);
+
 	  }
 	  else if (test_case == 2)
 	  {
@@ -317,21 +328,18 @@ int main(void)
 		  	  case 3:
 		  		// Do test alarm buzzer (buzzer on, led blink 1s)
 		  		  ConfigTimerPeriod(&htim6, 1000);
-
     		  	  sdk_handler.sleep = false; //wake up module
     		  	  test_case = 3;
     		  	  sdk_handler.testCase = 1;
 		  		  smoke_handler.AlarmSatus = true;
-
-		  		  printf("count = 3 \n");
 		  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
+		  		  printf("count = 3 \n");
 		  		  count = 0;
 		  		  break;
 		  	  default:
-
 		  		HAL_TIM_Base_Stop_IT(&htim6);
-		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 0);
+		  		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 0);
 		  		smoke_handler.AlarmSatus = false;
 		  		sdk_handler.testCase = 0;
 		  		test_case = 4;
@@ -438,6 +446,35 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Window = 4095;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
 
 }
 
@@ -557,6 +594,38 @@ static void MX_TIM6_Init(void)
   /* USER CODE BEGIN TIM6_Init 2 */
 
   /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 7999;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 20000;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
 
 }
 

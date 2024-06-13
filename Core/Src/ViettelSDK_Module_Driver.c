@@ -35,7 +35,7 @@ StatusType checkModule(struct ViettelSDK *self)
 	/* Send command */
 	self->command_response = sendCommand(self, "AT",
 	RUN_COMMAND_COUNTER_DEFAULT + 6,
-	RUN_COMMAND_TIMEOUT_MS_DEFAULT + 1000); /* Configured for PSM mode, DO NOT CHANGE */
+	RUN_COMMAND_TIMEOUT_MS_DEFAULT ); /* Configured for PSM mode, DO NOT CHANGE */
 
 	/* Get output status */
 	output_status = self->command_response.status;

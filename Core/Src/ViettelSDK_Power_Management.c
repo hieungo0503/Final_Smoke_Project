@@ -48,7 +48,7 @@ void InnitStop1Uart(UART_HandleTypeDef *huart)
 
 	  /* set the wake-up event:
 	   * specify wake-up on RXNE flag */
-	  WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
+	  WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_READDATA_NONEMPTY;
 	  if (HAL_UARTEx_StopModeWakeUpSourceConfig(huart, WakeUpSelection)!= HAL_OK)
 	  {
 	    Error_Handler();
@@ -68,8 +68,11 @@ void Enter_Stop1Mode(struct ViettelSDK *self, UART_HandleTypeDef *huart1, UART_H
 	  HAL_UARTEx_EnableStopMode(huart1);
 	  HAL_UARTEx_EnableStopMode(huart2);
 
-	  HAL_DisableDBGStopMode();
-	  //HAL_EnableDBGStopMode();
+	    HAL_DisableDBGStopMode();
+		//HAL_EnableDBGStopMode();
+
+	  resetDMAforPSM(self);
+
 
       HAL_PWR_EnableSleepOnExit();
 	  /* enter STOP1 mode */
@@ -131,8 +134,8 @@ void sleepMCU(struct ViettelSDK *self, uint32_t period_in_seconds)
 
 	if (WATCHDOG_TIMER)
 	{
-//		HAL_IWDG_Refresh(&hiwdg);
-		HAL_TIM_Base_Start_IT(&htim2);
+		HAL_IWDG_Refresh(&hiwdg);
+//		HAL_TIM_Base_Start_IT(&htim1);
 	}
 
 	if (HAL_RTC_SetAlarm_IT(&self->rtc_timer, &self->sAlarm, RTC_FORMAT_BIN)

@@ -32,12 +32,15 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 UART_WakeUpTypeDef WakeUpSelection;
+IWDG_HandleTypeDef hiwdg;
+
+TIM_HandleTypeDef htim16;
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 #ifndef SWO_DEBUG
-#define SWO_DEBUG (1)
+#define SWO_DEBUG (0)
 #endif
 #ifndef HW_DEBUG
 #define HW_DEBUG (0)

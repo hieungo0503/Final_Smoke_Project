@@ -44,6 +44,7 @@ struct ViettelSDK
 	bool sleep;
 	bool StopMode;
 	char PSM_TAU_WAKEUP[PSM_RECEIVE_TAU_BUFFER_SIZE]; //+QNBIOTEVENT:  "EXIT PSM"
+	bool psm_registed;
 
 	uint16_t voltage;
 
